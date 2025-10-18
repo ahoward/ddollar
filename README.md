@@ -1,32 +1,172 @@
-NAME
-====
-ddollar
+# 💸 ddollar
 
-SYNOPSIS
-========
-ddos for teh tokens - burn them like :fire-emoji
+> **DDoS for tokens - burn them to the ground** 🔥
 
-ddollar does
+Transparent HTTPS proxy that rotates AI provider tokens automatically. Install → Set env vars → Run. Zero config.
 
-- start a proxy that relays requests to various ai providers
-- alters local DNS such that *ALL TRAFFIC FROM ANY PROGRAM* goes through it (may require sudo)
-- intercepts requests, or scans a config, or an ENV $var, to create a list of tokens
-- rotates tokens so you can blow the fucking top off yer token spending
+```bash
+export OPENAI_API_KEY=sk-proj-...
+export ANTHROPIC_API_KEY=sk-ant-...
+sudo ddollar start
+# every app now rotates tokens automatically
+```
 
-in plain english, it creates a proxy that intercepts requests to ai providers
-and rotates multiple tokens from potentially many accounts so you can leverage
-every single account you have to burn the token wallet to the ground
+## 🎯 What It Does
 
-SIMPLE
-======
-- install, start, let it auto-configure
+- 🔀 **Rotates tokens**: Round-robin across all your API keys
+- 🌐 **Intercepts everything**: Modifies `/etc/hosts` - ALL apps use the proxy
+- 🤖 **Auto-discovers tokens**: Scans `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, etc.
+- 🚀 **Zero config**: No files, no setup - just works
 
-COMPLEX
-=======
-- install
-- configure
-- go
+**Supported**: OpenAI · Anthropic · Cohere · Google AI
 
-SPONSOR
-=======
-n5
+---
+
+## 🎬 TL;DR - See It Work
+
+```bash
+# 1. Set your token(s)
+export ANTHROPIC_API_KEY=sk-ant-api03-...
+
+# 2. Start ddollar (run in background or separate terminal)
+sudo ddollar start &
+
+# 3. Hit Claude API - ddollar intercepts and injects your token
+curl https://api.anthropic.com/v1/messages \
+  -H "content-type: application/json" \
+  -H "anthropic-version: 2023-06-01" \
+  -d '{
+    "model": "claude-3-5-sonnet-20241022",
+    "max_tokens": 16,
+    "messages": [{"role": "user", "content": "Say hello"}]
+  }'
+```
+
+**Output you'll see:**
+```
+# ddollar logs:
+[POST] api.anthropic.com /v1/messages
+Injected token for api.anthropic.com (provider: Anthropic)
+
+# API response:
+{"id":"msg_...","content":[{"text":"Hello!","type":"text"}],...}
+```
+
+**That's it.** No SDK config. No manual headers. Just works. 🔥
+
+---
+
+## ⚡ Install
+
+**macOS/Linux**:
+```bash
+# Grab binary (swap arch if needed: x86_64, arm64)
+curl -LO https://github.com/drawohara/ddollar/releases/latest/download/ddollar-$(uname -s | tr '[:upper:]' '[:lower:]')-$(uname -m)
+chmod +x ddollar-*
+sudo mv ddollar-* /usr/local/bin/ddollar
+```
+
+**Windows**: [Download exe](https://github.com/drawohara/ddollar/releases) → Drop in `C:\Windows\System32`
+
+**Build from source**:
+```bash
+git clone https://github.com/drawohara/ddollar.git
+cd ddollar
+go build -o ddollar ./src
+```
+
+---
+
+## 🚀 Usage
+
+```bash
+# Set your tokens
+export OPENAI_API_KEY=sk-proj-abc123
+export ANTHROPIC_API_KEY=sk-ant-xyz789
+
+# Check discovered tokens
+ddollar status
+
+# Start proxy (requires sudo for /etc/hosts)
+sudo ddollar start
+
+# Use any app normally - tokens rotate automatically
+curl https://api.openai.com/v1/models
+python my_openai_script.py
+
+# Stop and cleanup
+sudo ddollar stop
+```
+
+**That's it.** Apps hit the proxy, tokens rotate, requests go through.
+
+---
+
+## 🛠️ How It Works
+
+1. Modifies `/etc/hosts` to point `api.openai.com` → `127.0.0.1`
+2. Starts HTTPS proxy on port 443
+3. Intercepts requests, injects rotated token
+4. Forwards to real API
+
+**KISS**: No DNS servers, no daemons, no config files. Just a proxy + hosts file.
+
+---
+
+## ⚠️ First Run
+
+Self-signed cert needed for HTTPS interception. Trust it once:
+
+**macOS**:
+```bash
+sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain ~/.ddollar/cert.pem
+```
+
+**Linux**:
+```bash
+sudo cp ~/.ddollar/cert.pem /usr/local/share/ca-certificates/ddollar.crt
+sudo update-ca-certificates
+```
+
+**Windows** (PowerShell as Admin):
+```powershell
+certutil -addstore -f "ROOT" $env:USERPROFILE\.ddollar\cert.pem
+```
+
+---
+
+## 🐛 Troubleshooting
+
+**"Permission denied"** → Need `sudo` (port 443 + `/etc/hosts`)
+
+**"Command not found"** → Add `/usr/local/bin` to `$PATH`
+
+**macOS Gatekeeper** → `xattr -d com.apple.quarantine /usr/local/bin/ddollar`
+
+**Wrong arch** → Check with `uname -m`, download correct binary
+
+---
+
+## 📦 Platforms
+
+✅ macOS (Intel + Apple Silicon)
+✅ Linux (x86_64 + ARM64)
+✅ Windows (x86_64)
+
+Single binary. No dependencies. No runtime.
+
+---
+
+## 🤝 Contributing
+
+PRs welcome. Issues welcome. [GitHub](https://github.com/drawohara/ddollar)
+
+---
+
+## 💰 Sponsor
+
+**n5**
+
+---
+
+*max out those tokens* 💸🔥
