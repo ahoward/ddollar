@@ -24,13 +24,15 @@ Thumbs.db
 # Build artifacts
 dist/
 build/
+bin/
 target/
 *.exe
 *.dll
 *.so
 *.dylib
-ddollar
 ddollar-*
+!ddollar
 
 # Go
 go.sum
+.envrc
