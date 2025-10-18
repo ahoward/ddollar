@@ -22,6 +22,40 @@ sudo ddollar start
 
 ---
 
+## 🎬 TL;DR - See It Work
+
+```bash
+# 1. Set your token(s)
+export ANTHROPIC_API_KEY=sk-ant-api03-...
+
+# 2. Start ddollar (run in background or separate terminal)
+sudo ddollar start &
+
+# 3. Hit Claude API - ddollar intercepts and injects your token
+curl https://api.anthropic.com/v1/messages \
+  -H "content-type: application/json" \
+  -H "anthropic-version: 2023-06-01" \
+  -d '{
+    "model": "claude-3-5-sonnet-20241022",
+    "max_tokens": 16,
+    "messages": [{"role": "user", "content": "Say hello"}]
+  }'
+```
+
+**Output you'll see:**
+```
+# ddollar logs:
+[POST] api.anthropic.com /v1/messages
+Injected token for api.anthropic.com (provider: Anthropic)
+
+# API response:
+{"id":"msg_...","content":[{"text":"Hello!","type":"text"}],...}
+```
+
+**That's it.** No SDK config. No manual headers. Just works. 🔥
+
+---
+
 ## ⚡ Install
 
 **macOS/Linux**:
