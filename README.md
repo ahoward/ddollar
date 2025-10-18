@@ -1,245 +1,138 @@
-# ddollar
+# 💸 ddollar
 
-**DDoS for tokens** - A high-performance proxy that intercepts requests to AI providers and rotates multiple tokens to maximize API usage across accounts.
+> **DDoS for tokens - burn them to the ground** 🔥
 
-ddollar creates a transparent proxy that:
-- Intercepts requests to various AI providers (OpenAI, Anthropic, etc.)
-- Alters local DNS so ALL traffic from ANY program goes through the proxy
-- Scans configuration files or environment variables to discover available tokens
-- Automatically rotates tokens across multiple accounts to distribute load and maximize throughput
+Transparent HTTPS proxy that rotates AI provider tokens automatically. Install → Set env vars → Run. Zero config.
 
-**Simple**: Install, start, let it auto-configure
-**Advanced**: Full control over token rotation, rate limiting, and provider configuration
+```bash
+export OPENAI_API_KEY=sk-proj-...
+export ANTHROPIC_API_KEY=sk-ant-...
+sudo ddollar start
+# every app now rotates tokens automatically
+```
+
+## 🎯 What It Does
+
+- 🔀 **Rotates tokens**: Round-robin across all your API keys
+- 🌐 **Intercepts everything**: Modifies `/etc/hosts` - ALL apps use the proxy
+- 🤖 **Auto-discovers tokens**: Scans `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, etc.
+- 🚀 **Zero config**: No files, no setup - just works
+
+**Supported**: OpenAI · Anthropic · Cohere · Google AI
 
 ---
 
-## Installation
+## ⚡ Install
 
-### System Requirements
-
-- **Supported Platforms**: macOS (Intel/Apple Silicon), Linux (x86_64/ARM64), Windows (x86_64)
-- **Prerequisites**: None (standalone binary)
-- **Network**: May require sudo/administrator privileges for DNS modifications
-
-Download the latest release from [GitHub Releases](https://github.com/drawohara/ddollar/releases).
-
-### macOS
-
-**Intel (x86_64)**:
+**macOS/Linux**:
 ```bash
-# Download ddollar binary for macOS Intel
-curl -LO https://github.com/drawohara/ddollar/releases/latest/download/ddollar-macos-x86_64
-
-# Make executable
-chmod +x ddollar-macos-x86_64
-
-# Move to PATH
-sudo mv ddollar-macos-x86_64 /usr/local/bin/ddollar
+# Grab binary (swap arch if needed: x86_64, arm64)
+curl -LO https://github.com/drawohara/ddollar/releases/latest/download/ddollar-$(uname -s | tr '[:upper:]' '[:lower:]')-$(uname -m)
+chmod +x ddollar-*
+sudo mv ddollar-* /usr/local/bin/ddollar
 ```
 
-**Apple Silicon (ARM64)**:
+**Windows**: [Download exe](https://github.com/drawohara/ddollar/releases) → Drop in `C:\Windows\System32`
+
+**Build from source**:
 ```bash
-# Download ddollar binary for macOS ARM
-curl -LO https://github.com/drawohara/ddollar/releases/latest/download/ddollar-macos-arm64
-
-# Make executable
-chmod +x ddollar-macos-arm64
-
-# Move to PATH
-sudo mv ddollar-macos-arm64 /usr/local/bin/ddollar
-```
-
-### Linux
-
-**x86_64**:
-```bash
-# Download ddollar binary for Linux x86_64
-curl -LO https://github.com/drawohara/ddollar/releases/latest/download/ddollar-linux-x86_64
-
-# Make executable
-chmod +x ddollar-linux-x86_64
-
-# Move to PATH
-sudo mv ddollar-linux-x86_64 /usr/local/bin/ddollar
-```
-
-**ARM64**:
-```bash
-# Download ddollar binary for Linux ARM64
-curl -LO https://github.com/drawohara/ddollar/releases/latest/download/ddollar-linux-arm64
-
-# Make executable
-chmod +x ddollar-linux-arm64
-
-# Move to PATH
-sudo mv ddollar-linux-arm64 /usr/local/bin/ddollar
-```
-
-### Windows
-
-**x86_64**:
-
-Download [ddollar-windows-x86_64.exe](https://github.com/drawohara/ddollar/releases/latest/download/ddollar-windows-x86_64.exe) and place it in your PATH.
-
-Or using PowerShell:
-```powershell
-# Download ddollar binary for Windows
-Invoke-WebRequest -Uri "https://github.com/drawohara/ddollar/releases/latest/download/ddollar-windows-x86_64.exe" -OutFile "ddollar.exe"
-
-# Move to a directory in your PATH (example: C:\Windows\System32)
-# Or create a custom directory and add it to your PATH
-Move-Item ddollar.exe C:\Windows\System32\ddollar.exe
-```
-
-### Alternative Installation Methods
-
-**Homebrew (macOS/Linux)**:
-```bash
-# Coming soon - homebrew tap in development
-brew install drawohara/tap/ddollar
-```
-
-**Cargo (Rust)**:
-```bash
-# If published to crates.io
-cargo install ddollar
-```
-
-**Build from Source**:
-```bash
-# Clone the repository
 git clone https://github.com/drawohara/ddollar.git
 cd ddollar
-
-# Build with Cargo (requires Rust toolchain)
-cargo build --release
-
-# Install binary
-sudo mv target/release/ddollar /usr/local/bin/
+go build -o ddollar ./src
 ```
 
 ---
 
-## Quick Start
+## 🚀 Usage
 
-Verify installation:
 ```bash
-ddollar --version
-```
+# Set your tokens
+export OPENAI_API_KEY=sk-proj-abc123
+export ANTHROPIC_API_KEY=sk-ant-xyz789
 
-Expected output:
-```
-ddollar x.y.z
-```
-
-Start the proxy with auto-configuration:
-```bash
-ddollar start
-```
-
-The proxy will:
-1. Scan for API tokens in environment variables and config files
-2. Configure DNS to route AI provider traffic through the proxy
-3. Begin rotating tokens automatically
-
-Check proxy status:
-```bash
+# Check discovered tokens
 ddollar status
-```
 
-Stop the proxy:
-```bash
-ddollar stop
-```
-
-For detailed configuration options:
-```bash
-ddollar --help
-```
-
----
-
-## Troubleshooting
-
-### "Permission denied" when running ddollar
-
-Ensure the binary is executable:
-```bash
-chmod +x /usr/local/bin/ddollar
-```
-
-### "Command not found" after installation
-
-Verify `/usr/local/bin` is in your PATH:
-```bash
-echo $PATH | grep /usr/local/bin
-```
-
-If not present, add to your shell profile (`~/.bashrc`, `~/.zshrc`, `~/.config/fish/config.fish`):
-```bash
-export PATH="/usr/local/bin:$PATH"
-```
-
-Then reload your shell:
-```bash
-source ~/.bashrc  # or ~/.zshrc
-```
-
-### macOS: "Cannot be opened because the developer cannot be verified"
-
-This is macOS Gatekeeper. Two options:
-
-1. Right-click the binary, select "Open", click "Open" in the dialog
-2. Remove quarantine attribute:
-```bash
-xattr -d com.apple.quarantine /usr/local/bin/ddollar
-```
-
-### Downloaded the wrong architecture
-
-Check your system architecture:
-```bash
-# macOS/Linux
-uname -m
-```
-
-Output indicates architecture:
-- `x86_64`: Intel/AMD 64-bit
-- `arm64` or `aarch64`: ARM 64-bit
-
-Download the matching binary from [releases](https://github.com/drawohara/ddollar/releases).
-
-### DNS modifications require sudo/administrator privileges
-
-The proxy modifies local DNS to intercept AI provider traffic. On Unix systems:
-```bash
-# Run with sudo when starting
+# Start proxy (requires sudo for /etc/hosts)
 sudo ddollar start
+
+# Use any app normally - tokens rotate automatically
+curl https://api.openai.com/v1/models
+python my_openai_script.py
+
+# Stop and cleanup
+sudo ddollar stop
 ```
 
-On Windows, run PowerShell or Command Prompt as Administrator.
+**That's it.** Apps hit the proxy, tokens rotate, requests go through.
 
 ---
 
-## License
+## 🛠️ How It Works
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+1. Modifies `/etc/hosts` to point `api.openai.com` → `127.0.0.1`
+2. Starts HTTPS proxy on port 443
+3. Intercepts requests, injects rotated token
+4. Forwards to real API
 
----
-
-## Contributing
-
-Issues and pull requests are welcome! Please visit the [GitHub repository](https://github.com/drawohara/ddollar) to:
-- Report bugs or issues
-- Request features
-- Submit pull requests
+**KISS**: No DNS servers, no daemons, no config files. Just a proxy + hosts file.
 
 ---
 
-## Sponsor
+## ⚠️ First Run
+
+Self-signed cert needed for HTTPS interception. Trust it once:
+
+**macOS**:
+```bash
+sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain ~/.ddollar/cert.pem
+```
+
+**Linux**:
+```bash
+sudo cp ~/.ddollar/cert.pem /usr/local/share/ca-certificates/ddollar.crt
+sudo update-ca-certificates
+```
+
+**Windows** (PowerShell as Admin):
+```powershell
+certutil -addstore -f "ROOT" $env:USERPROFILE\.ddollar\cert.pem
+```
+
+---
+
+## 🐛 Troubleshooting
+
+**"Permission denied"** → Need `sudo` (port 443 + `/etc/hosts`)
+
+**"Command not found"** → Add `/usr/local/bin` to `$PATH`
+
+**macOS Gatekeeper** → `xattr -d com.apple.quarantine /usr/local/bin/ddollar`
+
+**Wrong arch** → Check with `uname -m`, download correct binary
+
+---
+
+## 📦 Platforms
+
+✅ macOS (Intel + Apple Silicon)
+✅ Linux (x86_64 + ARM64)
+✅ Windows (x86_64)
+
+Single binary. No dependencies. No runtime.
+
+---
+
+## 🤝 Contributing
+
+PRs welcome. Issues welcome. [GitHub](https://github.com/drawohara/ddollar)
+
+---
+
+## 💰 Sponsor
 
 **n5**
 
 ---
 
-*DDoS for tokens - burn them to the ground* 🔥
+*max out those tokens* 💸🔥
