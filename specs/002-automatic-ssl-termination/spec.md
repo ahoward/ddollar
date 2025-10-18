@@ -46,11 +46,11 @@ A user wants to uninstall ddollar and have all certificates cleanly removed from
 
 **Why this priority**: Security hygiene and user trust. Users should be able to completely remove ddollar's certificates, but this is less critical than making installation work smoothly.
 
-**Independent Test**: Can be tested by running `ddollar stop` or uninstall command and verifying no ddollar certificates remain in system trust stores.
+**Independent Test**: Can be tested by running `sudo ddollar untrust` command and verifying no ddollar certificates remain in system trust stores.
 
 **Acceptance Scenarios**:
 
-1. **Given** ddollar certificates are trusted, **When** user runs `ddollar stop` or uninstall, **Then** all ddollar CA certificates are removed from system trust stores
+1. **Given** ddollar certificates are trusted, **When** user runs `sudo ddollar untrust`, **Then** all ddollar CA certificates are removed from system trust stores
 2. **Given** certificates are being removed, **When** removal completes, **Then** user sees confirmation "✓ Certificates removed"
 3. **Given** certificate removal fails, **When** error occurs, **Then** manual removal instructions are provided
 
@@ -98,7 +98,7 @@ A user wants to uninstall ddollar and have all certificates cleanly removed from
 ### Measurable Outcomes
 
 - **SC-001**: Users can start ddollar with one command (`sudo ddollar start`) and make HTTPS API calls without any manual certificate steps
-- **SC-002**: Automatic certificate trust succeeds on 90%+ of standard desktop/server installations (macOS, Ubuntu, Fedora, Windows)
+- **SC-002**: Automatic certificate trust succeeds on 90%+ of standard desktop/server installations (defined as: macOS 11+, Ubuntu 20.04+, Fedora 38+, Windows 10+)
 - **SC-003**: When automatic trust fails, users receive clear fallback instructions and can manually trust certificates within 2 minutes
 - **SC-004**: Certificate operations (CA creation, trust installation, cert generation) complete in under 5 seconds total
 - **SC-005**: Zero SSL certificate warnings or errors appear in browsers or HTTP clients after successful ddollar installation

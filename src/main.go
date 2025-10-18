@@ -29,6 +29,10 @@ func main() {
 		stopCommand()
 	case "status":
 		statusCommand()
+	case "trust":
+		trustCommand()
+	case "untrust":
+		untrustCommand()
 	case "version", "--version", "-v":
 		versionCommand()
 	case "help", "--help", "-h":
@@ -44,18 +48,22 @@ func printUsage() {
 	fmt.Println(`ddollar - DDoS for tokens
 
 Usage:
-  ddollar start    Start the proxy and configure DNS
-  ddollar stop     Stop the proxy and restore DNS
-  ddollar status   Show proxy and token status
-  ddollar version  Show version information
-  ddollar help     Show this help message
+  ddollar start      Start the proxy and configure DNS (auto-trusts SSL certificates)
+  ddollar stop       Stop the proxy and restore DNS
+  ddollar status     Show proxy, certificate, and token status
+  ddollar trust      Manually install SSL certificate trust
+  ddollar untrust    Remove SSL certificate trust
+  ddollar version    Show version information
+  ddollar help       Show this help message
 
 Examples:
-  ddollar start       # Start with auto-discovered tokens
-  ddollar status      # Check if proxy is running
-  ddollar stop        # Stop and cleanup
+  sudo ddollar start     # Start with auto-trust (recommended)
+  ddollar status         # Check if proxy is running
+  sudo ddollar trust     # Manually trust certificates
+  sudo ddollar untrust   # Remove certificate trust
+  ddollar stop           # Stop and cleanup
 
-Note: Requires sudo/administrator privileges for DNS modification.`)
+Note: Requires sudo/administrator privileges for DNS modification and SSL trust.`)
 }
 
 func versionCommand() {
@@ -73,6 +81,59 @@ func statusCommand() {
 	discovered := tokens.Discover()
 	if len(discovered) == 0 {
 		fmt.Println("  Tokens discovered: 0")
+	} else {
+		totalTokens := 0
+		for _, pt := range discovered {
+			totalTokens += len(pt.Tokens)
+		}
+		fmt.Printf("  Tokens discovered: %d\n", totalTokens)
+		fmt.Printf("  Providers configured: %d\n", len(discovered))
+	}
+
+	// Check certificate status
+	fmt.Println("\nCertificates:")
+	certPath, _, err := proxy.CertPaths()
+	if err != nil {
+		fmt.Printf("  Error getting cert paths: %v\n", err)
+	} else {
+		// Check if CA exists
+		ca, caErr := proxy.EnsureCA()
+		if caErr != nil {
+			fmt.Println("  CA certificate: Not created")
+			fmt.Println("  Run 'sudo ddollar start' to initialize")
+		} else {
+			fmt.Printf("  CA certificate: %s\n", ca.RootCAPath)
+
+			// Check if trusted
+			trustErr := proxy.VerifyTrust(ca)
+			if trustErr == nil {
+				fmt.Println("  CA trusted: ✓ Yes")
+			} else {
+				fmt.Println("  CA trusted: ✗ No")
+				fmt.Println("  Action required: Run 'sudo ddollar trust' to install")
+			}
+		}
+
+		// Check leaf certificate
+		info, certErr := proxy.GetCertInfo(certPath)
+		if certErr != nil {
+			fmt.Println("  Leaf certificate: Not generated")
+			fmt.Println("  Run 'ddollar start' to create")
+		} else {
+			fmt.Printf("  Leaf certificate: %s\n", certPath)
+			fmt.Printf("  Valid until: %s (%d days remaining)\n",
+				info.ValidUntil.Format("2006-01-02"), info.DaysRemaining)
+			fmt.Printf("  Domains: %s\n", proxy.FormatDomains(info.Domains))
+		}
+	}
+
+	// Show providers if tokens exist
+	if len(discovered) > 0 {
+		fmt.Println("\nConfigured providers:")
+		for _, pt := range discovered {
+			fmt.Printf("  - %s: %d token(s)\n", pt.Provider.Name, len(pt.Tokens))
+		}
+	} else {
 		fmt.Println("\nNo API tokens found in environment variables.")
 		fmt.Println("Set one or more of the following:")
 		for _, p := range tokens.SupportedProviders {
@@ -80,24 +141,10 @@ func statusCommand() {
 				fmt.Printf("  - %s\n", envVar)
 			}
 		}
-		return
-	}
-
-	totalTokens := 0
-	for _, pt := range discovered {
-		totalTokens += len(pt.Tokens)
-	}
-
-	fmt.Printf("  Tokens discovered: %d\n", totalTokens)
-	fmt.Printf("  Providers configured: %d\n", len(discovered))
-
-	fmt.Println("\nConfigured providers:")
-	for _, pt := range discovered {
-		fmt.Printf("  - %s: %d token(s)\n", pt.Provider.Name, len(pt.Tokens))
 	}
 
 	if !isActive {
-		fmt.Println("\nProxy is not running. Use 'ddollar start' to begin.")
+		fmt.Println("\nProxy is not running. Use 'sudo ddollar start' to begin.")
 	}
 }
 
@@ -136,19 +183,41 @@ func startCommand() {
 		os.Exit(1)
 	}
 
-	// Generate certificate if needed
-	if !proxy.HasCert() {
-		fmt.Println("\nGenerating self-signed certificate...")
-		certPath, keyPath, err := proxy.GenerateCert()
-		if err != nil {
-			fmt.Printf("ERROR: Failed to generate certificate: %v\n", err)
-			os.Exit(1)
-		}
-		fmt.Printf("  ✓ Certificate created: %s\n", certPath)
-		fmt.Printf("  ✓ Private key created: %s\n", keyPath)
-		fmt.Println("\n⚠️  IMPORTANT: You need to trust the certificate for HTTPS to work.")
-		fmt.Println("See README.md for platform-specific instructions.")
+	// Setup SSL certificates
+	fmt.Println("\nSetting up SSL certificates...")
+
+	// Create or load CA
+	ca, err := proxy.EnsureCA()
+	if err != nil {
+		fmt.Printf("ERROR: Failed to initialize CA: %v\n", err)
+		os.Exit(1)
 	}
+	fmt.Println("  ✓ Certificate authority ready")
+
+	// Attempt automatic trust installation
+	if err := proxy.InstallTrust(ca); err != nil {
+		fmt.Printf("  ⚠️  Automatic certificate trust failed: %v\n", err)
+		fmt.Println("\nProxy will start anyway, but API calls will fail until certificates are trusted.")
+		fmt.Println("To manually trust certificates, run: sudo ddollar trust")
+		proxy.PrintManualInstructions()
+	} else {
+		// Verify trust was successful
+		if err := proxy.VerifyTrust(ca); err != nil {
+			fmt.Println("  ⚠️  Certificate trust verification failed")
+			fmt.Println("  Run 'sudo ddollar trust' to manually install trust")
+		} else {
+			fmt.Println("  ✓ CA installed to system trust store")
+			fmt.Println("  ✓ Certificate authority trusted")
+		}
+	}
+
+	// Generate leaf certificate
+	_, _, err = proxy.GenerateCert()
+	if err != nil {
+		fmt.Printf("ERROR: Failed to generate certificate: %v\n", err)
+		os.Exit(1)
+	}
+	fmt.Println("  ✓ Generated certificates")
 
 	// Modify hosts file
 	fmt.Println("\nModifying hosts file (requires sudo)...")
@@ -224,4 +293,77 @@ func stopCommand() {
 	fmt.Println("\nNote: If the proxy is still running, stop it with Ctrl+C")
 	fmt.Println("or find and kill the process:")
 	fmt.Println("  ps aux | grep ddollar")
+}
+
+func trustCommand() {
+	fmt.Println("Installing ddollar CA certificate...")
+
+	// Ensure CA exists
+	ca, err := proxy.EnsureCA()
+	if err != nil {
+		fmt.Printf("ERROR: Failed to initialize CA: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Check if already trusted
+	if err := proxy.VerifyTrust(ca); err == nil {
+		fmt.Println("✓ Certificate authority is already trusted")
+		fmt.Println("No action needed.")
+		return
+	}
+
+	// Install trust
+	if err := proxy.InstallTrust(ca); err != nil {
+		fmt.Printf("❌ Failed to install CA certificate\n\n")
+		fmt.Println("ddollar needs administrator privileges to install certificates.")
+		fmt.Println("Please run with sudo:")
+		fmt.Println("\n  sudo ddollar trust\n")
+		fmt.Println("Or manually trust the certificate:")
+		proxy.PrintManualInstructions()
+		os.Exit(1)
+	}
+
+	// Verify installation
+	if err := proxy.VerifyTrust(ca); err != nil {
+		fmt.Println("⚠️  Trust installation completed but verification failed")
+		fmt.Println("The certificate may still work. Check with: ddollar status")
+	} else {
+		fmt.Println("✓ CA installed to system trust store")
+		fmt.Println("\nYour system now trusts ddollar certificates.")
+	}
+}
+
+func untrustCommand() {
+	fmt.Println("Removing ddollar CA certificate...")
+
+	// Ensure CA exists
+	ca, err := proxy.EnsureCA()
+	if err != nil {
+		fmt.Printf("ERROR: Failed to load CA: %v\n", err)
+		fmt.Println("CA may not exist. Nothing to remove.")
+		return
+	}
+
+	// Check if trusted
+	if err := proxy.VerifyTrust(ca); err != nil {
+		fmt.Println("✓ CA certificate is not installed")
+		fmt.Println("No action needed.")
+		return
+	}
+
+	// Uninstall trust
+	if err := proxy.UninstallTrust(ca); err != nil {
+		fmt.Printf("❌ Failed to remove CA certificate\n\n")
+		fmt.Println("ddollar needs administrator privileges to modify trust stores.")
+		fmt.Println("Please run with sudo:")
+		fmt.Println("\n  sudo ddollar untrust\n")
+		os.Exit(1)
+	}
+
+	fmt.Println("✓ CA removed from system trust store")
+	fmt.Println("\nddollar certificates are no longer trusted by your system.")
+	fmt.Println("\nNote: CA files still exist at ~/.ddollar/ca/")
+	fmt.Println("To completely remove ddollar:")
+	fmt.Println("  1. Run: rm -rf ~/.ddollar")
+	fmt.Println("  2. Uninstall ddollar binary")
 }

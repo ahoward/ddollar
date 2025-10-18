@@ -113,24 +113,58 @@ sudo ddollar stop
 
 ---
 
-## ⚠️ First Run
+## 🔒 SSL Certificates (Automatic!)
 
-Self-signed cert needed for HTTPS interception. Trust it once:
+**Zero config needed** - `sudo ddollar start` automatically creates and trusts SSL certificates. Just run it and go! 🎉
+
+### What Happens Automatically
+
+1. ✓ Creates local Certificate Authority (CA)
+2. ✓ Installs CA to system trust stores
+3. ✓ Generates SSL certificate for AI providers
+4. ✓ HTTPS requests work immediately - no SSL warnings
+
+**Supported**: macOS, Linux (Ubuntu/Debian, RHEL/Fedora), Windows, Firefox (NSS)
+
+### Manual Control (Optional)
+
+If automatic trust fails or you want explicit control:
+
+```bash
+# Manually install trust
+sudo ddollar trust
+
+# Remove trust
+sudo ddollar untrust
+
+# Check certificate status
+ddollar status
+```
+
+### Fallback: Manual Trust (If Needed)
+
+Only needed if running without sudo or in restricted environments:
 
 **macOS**:
 ```bash
-sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain ~/.ddollar/cert.pem
+sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain ~/.ddollar/ca/rootCA.pem
 ```
 
-**Linux**:
+**Linux (Debian/Ubuntu)**:
 ```bash
-sudo cp ~/.ddollar/cert.pem /usr/local/share/ca-certificates/ddollar.crt
+sudo cp ~/.ddollar/ca/rootCA.pem /usr/local/share/ca-certificates/ddollar.crt
 sudo update-ca-certificates
+```
+
+**Linux (RHEL/Fedora)**:
+```bash
+sudo cp ~/.ddollar/ca/rootCA.pem /etc/pki/ca-trust/source/anchors/ddollar.pem
+sudo update-ca-trust
 ```
 
 **Windows** (PowerShell as Admin):
 ```powershell
-certutil -addstore -f "ROOT" $env:USERPROFILE\.ddollar\cert.pem
+certutil -addstore -f "ROOT" $env:USERPROFILE\.ddollar\ca\rootCA.pem
 ```
 
 ---
@@ -165,7 +199,7 @@ PRs welcome. Issues welcome. [GitHub](https://github.com/drawohara/ddollar)
 
 ## 💰 Sponsor
 
-**n5**
+**an n5 joint 🚬**
 
 ---
 
