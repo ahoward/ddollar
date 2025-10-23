@@ -219,10 +219,8 @@ PRs welcome. Issues welcome. [GitHub](https://github.com/drawohara/ddollar)
 
 ---
 
-## 💰 Sponsor
-
-**an n5 joint 🚬**
-
 ---
 
 *max out those tokens* 💸🔥
+
+<sub>an [#n5](https://www.nickel5.com/) joint 🚬</sub>
