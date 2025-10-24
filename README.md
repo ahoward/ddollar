@@ -75,14 +75,24 @@ ddollar node agent.js
 ddollar --interactive claude --continue
 ```
 
-**Multiple tokens**:
+**Multiple tokens** (3 ways):
 ```bash
-export ANTHROPIC_API_KEY=sk-ant-1...
-export ANTHROPIC_API_KEY_2=sk-ant-2...
-export ANTHROPIC_API_KEY_3=sk-ant-3...
+# 1. Comma-separated
+export ANTHROPIC_API_KEY=sk-ant-primary...
+export ANTHROPIC_API_KEYS=sk-ant-1...,sk-ant-2...,sk-ant-3...
+
+# 2. File with one token per line
+echo "sk-ant-1..." > ~/.ddollar-keys
+echo "sk-ant-2..." >> ~/.ddollar-keys
+export ANTHROPIC_API_KEYS_FILE=~/.ddollar-keys
+
+# 3. Mix and match (all get deduplicated)
+export ANTHROPIC_API_KEY=sk-ant-primary...
+export ANTHROPIC_API_KEYS=sk-ant-1...,sk-ant-2...
+export ANTHROPIC_API_KEYS_FILE=~/.ddollar-keys
 
 ddollar claude --continue
-# Rotates through all 3 tokens
+# Rotates through ALL discovered tokens
 ```
 
 ---
