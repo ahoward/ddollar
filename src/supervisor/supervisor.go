@@ -224,22 +224,14 @@ func (s *Supervisor) promptUser(status *RateLimitStatus) {
 // waitForReset pauses the subprocess until the rate limit resets
 func (s *Supervisor) waitForReset(status *RateLimitStatus) {
 	duration := status.TimeUntilReset()
-	fmt.Printf("▶  Pausing subprocess for %s...\n", formatDuration(duration))
+	fmt.Printf("▶  Waiting %s for limits to reset...\n", formatDuration(duration))
 
-	// Send SIGTSTP to pause (like Ctrl+Z)
-	if err := s.subprocess.Process.Signal(syscall.SIGTSTP); err != nil {
-		log.Printf("Error pausing process: %v", err)
-		return
-	}
+	// Note: Pause/resume (SIGTSTP/SIGCONT) not supported on Windows
+	// On Unix, we could pause the process, but for cross-platform compatibility
+	// we just wait and let the process continue running
 
-	// Wait
 	time.Sleep(duration)
-
-	// Resume with SIGCONT
-	fmt.Println("▶  Resuming subprocess...")
-	if err := s.subprocess.Process.Signal(syscall.SIGCONT); err != nil {
-		log.Printf("Error resuming process: %v", err)
-	}
+	fmt.Println("▶  Limit reset, continuing...")
 }
 
 // gracefulExit stops the subprocess and exits
