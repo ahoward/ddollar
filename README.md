@@ -108,6 +108,48 @@ ddollar claude --continue
 
 ---
 
+## 🕵️ Tor Integration (Mask Your IP)
+
+Use ddollar with Tor to anonymize your API requests:
+
+```bash
+# Install Tor
+sudo apt-get install tor        # Linux
+brew install tor                # macOS
+
+# Start Tor daemon
+sudo systemctl start tor        # Linux
+brew services start tor         # macOS
+
+# Run through Tor
+torify ddollar claude --continue
+```
+
+**Benefits**:
+- 🔒 Hide your IP from AI providers
+- 🔄 New IP with each token rotation
+- 🌍 Geographic diversity (different exit nodes)
+- 🛡️ Multi-account isolation
+
+**Advanced usage**:
+```bash
+# Multiple tokens + Tor = new IP per rotation
+export ANTHROPIC_API_KEYS=key1,key2,key3
+torify ddollar claude --continue
+
+# Verify Tor is working
+torify curl -s https://api.ipify.org
+```
+
+See [docs/TOR_INTEGRATION.md](docs/TOR_INTEGRATION.md) for:
+- Per-token Tor circuits
+- Auto-renewing circuits on rotation
+- Country-specific exit nodes
+- Performance optimization
+- Security considerations
+
+---
+
 ## 🐛 Troubleshooting
 
 - **"No tokens found"** → Set `ANTHROPIC_API_KEY` (etc) in shell
