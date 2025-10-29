@@ -62,6 +62,11 @@ func (m *Monitor) Watch(token *tokens.Token, statusChan chan *RateLimitStatus) {
 	}
 }
 
+// CheckLimitsPublic is a public wrapper for checkLimits (used by validator)
+func (m *Monitor) CheckLimitsPublic(token *tokens.Token) (*RateLimitStatus, error) {
+	return m.checkLimits(token)
+}
+
 // checkLimits makes a minimal API call to check rate limit headers
 func (m *Monitor) checkLimits(token *tokens.Token) (*RateLimitStatus, error) {
 	var resp *http.Response
@@ -81,6 +86,11 @@ func (m *Monitor) checkLimits(token *tokens.Token) (*RateLimitStatus, error) {
 	}
 	defer resp.Body.Close()
 
+	// Check for HTTP errors (authentication failures, etc)
+	if resp.StatusCode >= 400 {
+		return nil, fmt.Errorf("HTTP %d: authentication failed or invalid token", resp.StatusCode)
+	}
+
 	// Parse provider-specific headers
 	status := &RateLimitStatus{Provider: token.Provider.Name}
 
@@ -97,7 +107,7 @@ func (m *Monitor) checkLimits(token *tokens.Token) (*RateLimitStatus, error) {
 func (m *Monitor) checkAnthropic(token *tokens.Token) (*http.Response, error) {
 	// Minimal request: 1 token response
 	reqBody := map[string]interface{}{
-		"model":      "claude-3-5-sonnet-20241022",
+		"model":      "claude-3-5-sonnet-20240620",
 		"max_tokens": 1,
 		"messages": []map[string]string{
 			{"role": "user", "content": "."},

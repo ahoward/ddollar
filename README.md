@@ -66,6 +66,9 @@ go build -o ddollar ./src
 ## 🚀 Usage
 
 ```bash
+# Validate your token setup first
+ddollar --validate
+
 # Run any long-running CLI
 ddollar claude --continue
 ddollar python train_model.py
@@ -150,9 +153,48 @@ See [docs/TOR_INTEGRATION.md](docs/TOR_INTEGRATION.md) for:
 
 ---
 
+## 🔍 Validate Your Setup
+
+Before running long sessions, validate your tokens:
+
+```bash
+ddollar --validate
+```
+
+**Example output**:
+```
+🔍 Validating tokens...
+
+[1/3] Testing Anthropic token...
+  ✓ Valid
+    Requests: 4850/5000 remaining (3.0% used)
+    Tokens:   95234/100000 remaining (4.8% used)
+    Reset:    52m 18s
+
+[2/3] Testing Anthropic token...
+  ✓ Valid
+    Requests: 5000/5000 remaining (0.0% used)
+    Tokens:   100000/100000 remaining (0.0% used)
+
+[3/3] Testing OpenAI token...
+  ✗ FAILED: HTTP 401: authentication failed or invalid token
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Summary: 2 valid, 1 invalid, 3 total
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
+
+This tests each token with a minimal API call and shows:
+- ✓ Token validity
+- Current rate limit usage
+- Time until rate limits reset
+
+---
+
 ## 🐛 Troubleshooting
 
 - **"No tokens found"** → Set `ANTHROPIC_API_KEY` (etc) in shell
+- **Token validation fails** → Run `ddollar --validate` to test each token
 - **Process won't rotate** → Tool must support `--continue` flag
 - **Limit hit before rotation** → Tokens hitting limits faster than 60s check interval
 
